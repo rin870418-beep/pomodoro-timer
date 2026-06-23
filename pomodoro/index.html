@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>포모도로 타이머</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    display: flex; justify-content: center; align-items: center;
+    min-height: 100vh;
+    transition: background 0.5s;
+  }
+  body.focus { background: #1a1a2e; }
+  body.break { background: #0f3d3e; }
+  .container { text-align: center; color: #fff; }
+  .phase {
+    font-size: 1.2rem; text-transform: uppercase; letter-spacing: 4px;
+    margin-bottom: 1rem; opacity: 0.8;
+  }
+  .ring {
+    position: relative; width: 280px; height: 280px; margin: 0 auto 2rem;
+  }
+  .ring svg { transform: rotate(-90deg); }
+  .ring circle {
+    fill: none; stroke-width: 6;
+  }
+  .track { stroke: rgba(255,255,255,0.1); }
+  .progress {
+    stroke: #e94560; transition: stroke-dashoffset 0.5s linear;
+    stroke-linecap: round;
+  }
+  body.break .progress { stroke: #4ecca3; }
+  .time {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 4rem; font-weight: 300; font-variant-numeric: tabular-nums;
+  }
+  .controls { display: flex; gap: 1rem; justify-content: center; margin-bottom: 1.5rem; }
+  .btn {
+    border: 2px solid rgba(255,255,255,0.3); background: transparent;
+    color: #fff; padding: 0.7rem 2rem; border-radius: 50px;
+    font-size: 1rem; cursor: pointer; transition: all 0.2s;
+    min-width: 100px;
+  }
+  .btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.6); }
+  .btn.primary { background: #e94560; border-color: #e94560; }
+  body.break .btn.primary { background: #4ecca3; border-color: #4ecca3; }
+  .sessions {
+    font-size: 0.9rem; opacity: 0.6;
+  }
+  .dots { display: flex; gap: 8px; justify-content: center; margin-top: 0.5rem; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+  }
+  .dot.done { background: #e94560; border-color: #e94560; }
+  body.break .dot.done { background: #4ecca3; border-color: #4ecca3; }
+  .settings {
+    margin-top: 2rem; display: flex; gap: 1.5rem; justify-content: center;
+    opacity: 0.5; font-size: 0.85rem;
+  }
+  .settings label { display: flex; align-items: center; gap: 0.4rem; }
+  .settings input {
+    width: 50px; background: transparent; border: 1px solid rgba(255,255,255,0.3);
+    color: #fff; text-align: center; padding: 4px; border-radius: 4px;
+    font-size: 0.85rem;
+  }
+</style>
+</head>
+<body class="focus">
+<div class="container">
+  <div class="phase" id="phase">집중 시간</div>
+  <div class="ring">
+    <svg width="280" height="280" viewBox="0 0 280 280">
+      <circle class="track" cx="140" cy="140" r="130"/>
+      <circle class="progress" id="prog" cx="140" cy="140" r="130"
+        stroke-dasharray="816.81" stroke-dashoffset="0"/>
+    </svg>
+    <div class="time" id="time">25:00</div>
+  </div>
+  <div class="controls">
+    <button class="btn primary" id="startBtn" onclick="toggle()">시작</button>
+    <button class="btn" onclick="reset()">초기화</button>
+  </div>
+  <div class="sessions">완료한 세션</div>
+  <div class="dots" id="dots"></div>
+  <div class="settings">
+    <label>집중 <input id="focusMin" type="number" value="25" min="1" max="90" onchange="updateSettings()">분</label>
+    <label>휴식 <input id="breakMin" type="number" value="5" min="1" max="30" onchange="updateSettings()">분</label>
+  </div>
+</div>
+
+<script>
+const CIRC = 2 * Math.PI * 130;
+const prog = document.getElementById('prog');
+const timeEl = document.getElementById('time');
+const phaseEl = document.getElementById('phase');
+const startBtn = document.getElementById('startBtn');
+const dotsEl = document.getElementById('dots');
+
+let focusSec = 25 * 60, breakSec = 5 * 60;
+let remaining, total, timer = null, isFocus = true, sessions = 0;
+
+function init() {
+  remaining = total = focusSec;
+  render();
+  renderDots();
+}
+
+function render() {
+  const m = Math.floor(remaining / 60);
+  const s = remaining % 60;
+  timeEl.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+  const frac = 1 - remaining / total;
+  prog.style.strokeDashoffset = CIRC * (1 - frac);
+}
+
+function renderDots() {
+  dotsEl.innerHTML = '';
+  for (let i = 0; i < 4; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' + (i < sessions ? ' done' : '');
+    dotsEl.appendChild(d);
+  }
+}
+
+function toggle() {
+  if (timer) { pause(); } else { start(); }
+}
+
+function start() {
+  timer = setInterval(() => {
+    remaining--;
+    if (remaining < 0) { onComplete(); return; }
+    render();
+  }, 1000);
+  startBtn.textContent = '일시정지';
+}
+
+function pause() {
+  clearInterval(timer); timer = null;
+  startBtn.textContent = '계속';
+}
+
+function reset() {
+  clearInterval(timer); timer = null;
+  isFocus = true;
+  document.body.className = 'focus';
+  phaseEl.textContent = '집중 시간';
+  startBtn.textContent = '시작';
+  remaining = total = focusSec;
+  render();
+}
+
+function onComplete() {
+  clearInterval(timer); timer = null;
+  playBeep();
+  if (isFocus) {
+    sessions++;
+    if (sessions >= 4) sessions = 0;
+    renderDots();
+    isFocus = false;
+    document.body.className = 'break';
+    phaseEl.textContent = '휴식 시간';
+    remaining = total = breakSec;
+  } else {
+    isFocus = true;
+    document.body.className = 'focus';
+    phaseEl.textContent = '집중 시간';
+    remaining = total = focusSec;
+  }
+  render();
+  startBtn.textContent = '시작';
+}
+
+function playBeep() {
+  const ctx = new AudioContext();
+  [0, 0.15, 0.3].forEach(t => {
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 800;
+    g.gain.setValueAtTime(0.3, ctx.currentTime + t);
+    g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + t + 0.12);
+    o.start(ctx.currentTime + t);
+    o.stop(ctx.currentTime + t + 0.12);
+  });
+}
+
+function updateSettings() {
+  focusSec = (parseInt(document.getElementById('focusMin').value) || 25) * 60;
+  breakSec = (parseInt(document.getElementById('breakMin').value) || 5) * 60;
+  if (!timer) reset();
+}
+
+init();
+</script>
+</body>
+</html>
