@@ -77,11 +77,11 @@
       <circle class="progress" id="prog" cx="140" cy="140" r="130"
         stroke-dasharray="816.81" stroke-dashoffset="0"/>
     </svg>
-    <div class="time" id="time">25:00</div>
+    <div class="time" id="time" aria-live="polite" role="timer">25:00</div>
   </div>
   <div class="controls">
-    <button class="btn primary" id="startBtn" onclick="toggle()">시작</button>
-    <button class="btn" onclick="reset()">초기화</button>
+    <button class="btn primary" id="startBtn" onclick="toggle()" aria-label="타이머 시작">시작</button>
+    <button class="btn" onclick="reset()" aria-label="타이머 초기화">초기화</button>
   </div>
   <div class="sessions">완료한 세션</div>
   <div class="dots" id="dots"></div>
